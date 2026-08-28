@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include "buffer.h"
 
+#define IDM_FILE_NEW 1
+#define IDM_FILE_OPEN 2
+#define IDM_FILE_QUIT 3
+
 static void OnPaint(HWND hwnd, const NotepadState *state){
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd,&ps);
@@ -60,7 +64,42 @@ static void OnChar(HWND hwnd,const WPARAM wParam, NotepadState *state){
 
 }
 
+static void HandleCommands(HWND hwnd,const WPARAM wParam, NotepadState *state){
+    WORD id = LOWORD(wParam);
+    switch (id) {
+        case IDM_FILE_NEW:
+            state->length = 0;
+            state->text[0] = L'\0';
+            InvalidateRect(hwnd, NULL, FALSE);
+            break;
 
+        case IDM_FILE_QUIT:
+            SendMessage(hwnd, WM_CLOSE, 0, 0);
+            break;
+    }
+    
+
+}
+
+
+
+
+static void AddMenus(HWND hwnd) {
+
+    HMENU hMenubar;
+    HMENU hMenu;
+
+    hMenubar = CreateMenu();
+    hMenu = CreatePopupMenu();
+
+    AppendMenuW(hMenu, MF_STRING, IDM_FILE_NEW, L"&New");
+    AppendMenuW(hMenu, MF_STRING, IDM_FILE_OPEN, L"&Open");
+    AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
+    AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
+
+    AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR) hMenu, L"&File");
+    SetMenu(hwnd, hMenubar);
+}
 
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
@@ -70,6 +109,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         CREATESTRUCT *pCreate = (CREATESTRUCT*)lParam;
         state = (NotepadState*)pCreate->lpCreateParams;
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)state);
+        AddMenus(hwnd);
     }
     else
     {
@@ -92,11 +132,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             return 0;
         }
         
+        case WM_COMMAND:
+            HandleCommands(hwnd,wParam,state);
+            return 0;
         case WM_DESTROY:
             Buffer_Free(state);
             PostQuitMessage(0);
             return 0;
         
+
+
         default:
             return DefWindowProc(hwnd, uMsg, wParam, lParam);
 
