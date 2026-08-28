@@ -2,20 +2,49 @@
 #include <stdio.h>
 #include "buffer.h"
 
-void OnPaint(HWND hwnd, const NotepadState *state){
+static void OnPaint(HWND hwnd, const NotepadState *state){
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd,&ps);
+    HBITMAP hbmMem, hbmOld;
+    HDC hdcMem;
     RECT rect;
+
     GetClientRect(hwnd, &rect);
+    int width = rect.right - rect.left;
+    int height = rect.bottom - rect.top;
 
-    FillRect(hdc, &rect, (HBRUSH) (COLOR_WINDOW+1));
+    if (width <= 0 || height <= 0) {
+        EndPaint(hwnd, &ps);
+        return;
+    }
 
-    DrawTextW(hdc, state->text, state->length, &rect, DT_LEFT|DT_WORDBREAK|DT_EDITCONTROL );
+    hdcMem = CreateCompatibleDC(hdc); //copy the hdc
+
+    hbmMem = CreateCompatibleBitmap(hdc,
+                                    rect.right-rect.left,
+                                    rect.bottom-rect.top); //create a bitmap
+    hbmOld = SelectObject(hdcMem, hbmMem); // use the bitmap
+
+    FillRect(hdcMem, &rect, (HBRUSH) (COLOR_WINDOW+1)); //background
+
+    DrawTextW(hdcMem, state->text, (int)state->length, &rect, DT_LEFT | DT_WORDBREAK | DT_EDITCONTROL); //text
+
+    BitBlt(hdc,
+           rect.left, rect.top,
+           rect.right-rect.left, rect.bottom-rect.top,
+           hdcMem,
+           0, 0,
+           SRCCOPY); //transfer to the real hdc
+    
+    //free memory and end paint
+    SelectObject(hdcMem, hbmOld);
+    DeleteObject(hbmMem);
+    DeleteDC(hdcMem);
     EndPaint(hwnd, &ps);
 }
 
-void OnChar(HWND hwnd,const WPARAM wParam, NotepadState *state){
-    if (wParam >= 32 && wParam != 127) {
+static void OnChar(HWND hwnd,const WPARAM wParam, NotepadState *state){
+    if (wParam >= 32 && wParam != 127) { //Handle normal keyboard inputs
         Buffer_InsertChar(state,(wchar_t)wParam);
     } 
     
@@ -23,7 +52,7 @@ void OnChar(HWND hwnd,const WPARAM wParam, NotepadState *state){
         Buffer_Backspace(state);
     } 
     
-    else if(wParam == VK_RETURN){
+    else if(wParam == VK_RETURN){ // Handle enter
         Buffer_InsertChar(state,L'\n');
     }
 
@@ -55,6 +84,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             OnPaint(hwnd,state);
             return 0;
 
+        case WM_ERASEBKGND:
+            return (LRESULT)1;
+
         case WM_CHAR: {
             OnChar(hwnd,wParam,state);
             return 0;
@@ -64,7 +96,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             Buffer_Free(state);
             PostQuitMessage(0);
             return 0;
-            
+        
         default:
             return DefWindowProc(hwnd, uMsg, wParam, lParam);
 
