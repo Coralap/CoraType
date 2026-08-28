@@ -10,7 +10,7 @@ void OnPaint(HWND hwnd, const NotepadState *state){
 
     FillRect(hdc, &rect, (HBRUSH) (COLOR_WINDOW+1));
 
-    DrawTextW(hdc, state->text, state->index, &rect, DT_LEFT);
+    DrawTextW(hdc, state->text, state->index, &rect, DT_LEFT|DT_WORDBREAK|DT_EDITCONTROL );
     EndPaint(hwnd, &ps);
 }
 
