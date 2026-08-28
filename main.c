@@ -1,3 +1,10 @@
+#ifndef UNICODE
+#define UNICODE
+#endif
+#ifndef _UNICODE
+#define _UNICODE
+#endif
+
 #define COBJMACROS
 #define WIN32_LEAN_AND_MEAN
 
@@ -6,11 +13,12 @@
 #include <d2d1.h>
 #include <dwrite.h>
 #include <stdio.h>
+#include <fcntl.h>
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 
 struct NotepadState {
-    char text[256];
+    wchar_t  text[256];
     int index;
 };
 typedef struct NotepadState NotepadState;
@@ -21,6 +29,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     if (AttachConsole(ATTACH_PARENT_PROCESS)) {
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
+        _setmode(_fileno(stdout), _O_U16TEXT);
     }
     // Register the window class.
     const wchar_t CLASS_NAME[]  = L"Coral Window Class";
@@ -104,17 +113,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             GetClientRect(hwnd, &rect);
 
             FillRect(hdc, &rect, (HBRUSH) (COLOR_WINDOW+1));
-            LPCSTR text = state->text;
-            DrawTextA(hdc, text, state->index, &rect, DT_LEFT);
+        
+            DrawTextW(hdc, state->text, state->index, &rect, DT_LEFT);
             EndPaint(hwnd, &ps);
             
         }
         return 0;
 
         case WM_CHAR: {
-            if (wParam >= 32 && wParam <= 126) {
+
+            if (wParam >= 32 && wParam != 127) {
                 if (state->index < 255) {
-                    state->text[state->index++] = (char)wParam;
+                    state->text[state->index++] = (wchar_t)wParam;
                     state->text[state->index] = '\0';
                     InvalidateRect(hwnd, NULL, TRUE);
                 }
