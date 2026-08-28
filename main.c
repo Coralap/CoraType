@@ -41,7 +41,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     HWND hwnd = CreateWindowEx(
         0,                              // Optional window styles.
         CLASS_NAME,                     // Window class
-        L"Textalap",    // Window text
+        L"CoraType",    // Window text
         WS_OVERLAPPEDWINDOW,            // Window style
 
         // Size and position
@@ -105,7 +105,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
 
             FillRect(hdc, &rect, (HBRUSH) (COLOR_WINDOW+1));
             LPCSTR text = state->text;
-            DrawTextA(hdc, text, state->index, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+            DrawTextA(hdc, text, state->index, &rect, DT_LEFT);
             EndPaint(hwnd, &ps);
             
         }
@@ -122,6 +122,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 state->index--;
                 state->text[state->index] = '\0';
                 InvalidateRect(hwnd, NULL, TRUE);
+            } else if(wParam == VK_RETURN && state->index <255){
+                    state->text[state->index++] = '\n';
+                    state->text[state->index] = '\0';
+                    InvalidateRect(hwnd, NULL, TRUE);
             }
             return 0;
         }
