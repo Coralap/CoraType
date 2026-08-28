@@ -1,8 +1,11 @@
-#include "stdio.h"
-#include "windows.h"
+#define COBJMACROS
+#define WIN32_LEAN_AND_MEAN
+
+#include <windows.h>
+#include <initguid.h>
 #include <d2d1.h>
 #include <dwrite.h>
-
+#include <stdio.h>
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 
@@ -56,7 +59,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     if(SUCCEEDED(hr)){
-    }else{
+    }
+    
+    else{
         return 0;
     }
     
@@ -72,7 +77,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-
     return 0;
 }
 
@@ -96,9 +100,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd,&ps);
-            FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW+1));
+            RECT rect;
+            GetClientRect(hwnd, &rect);
+
+            FillRect(hdc, &rect, (HBRUSH) (COLOR_WINDOW+1));
             LPCSTR text = state->text;
-            DrawTextA(hdc, text, state->index, &ps.rcPaint, DT_CENTER | DT_VCENTER);
+            DrawTextA(hdc, text, state->index, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
             EndPaint(hwnd, &ps);
             
         }
