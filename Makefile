@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2
-LDFLAGS = -municode -mwindows -lole32 -ldwrite -ld2d1 -luuid
+CFLAGS = -Wall -Wextra -O2 -DUNICODE -D_UNICODE
+LDFLAGS = -municode -mwindows
 
 TARGET = a.exe
 SRCS = main.c

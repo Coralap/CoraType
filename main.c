@@ -1,27 +1,19 @@
-#ifndef UNICODE
-#define UNICODE
-#endif
-#ifndef _UNICODE
-#define _UNICODE
-#endif
 
 #define COBJMACROS
 #define WIN32_LEAN_AND_MEAN
 
+#define MAX_BUFFER_LEN 256
+
 #include <windows.h>
-#include <initguid.h>
-#include <d2d1.h>
-#include <dwrite.h>
 #include <stdio.h>
 #include <fcntl.h>
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 
-struct NotepadState {
-    wchar_t  text[256];
+typedef struct {
+    wchar_t text[256];
     int index;
-};
-typedef struct NotepadState NotepadState;
+} NotepadState;
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow){
     (void)hPrevInstance;
@@ -66,13 +58,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     {
         return 0;
     }
-    HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-    if(SUCCEEDED(hr)){
-    }
-    
-    else{
-        return 0;
-    }
+
     
     
     
@@ -102,6 +88,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
     {
         LONG_PTR ptr = GetWindowLongPtr(hwnd, GWLP_USERDATA);
         state = (NotepadState*)ptr;
+        if(!state)
+            return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
     switch (uMsg)
     {
@@ -123,25 +111,24 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         case WM_CHAR: {
 
             if (wParam >= 32 && wParam != 127) {
-                if (state->index < 255) {
+                if (state->index < MAX_BUFFER_LEN - 1) {
                     state->text[state->index++] = (wchar_t)wParam;
                     state->text[state->index] = '\0';
-                    InvalidateRect(hwnd, NULL, TRUE);
+                    InvalidateRect(hwnd, NULL, FALSE);
                 }
             } else if (wParam == VK_BACK && state->index > 0) { // Handle backspace
                 state->index--;
                 state->text[state->index] = '\0';
-                InvalidateRect(hwnd, NULL, TRUE);
-            } else if(wParam == VK_RETURN && state->index <255){
+                InvalidateRect(hwnd, NULL, FALSE);
+            } else if(wParam == VK_RETURN && state->index < MAX_BUFFER_LEN - 1){
                     state->text[state->index++] = '\n';
                     state->text[state->index] = '\0';
-                    InvalidateRect(hwnd, NULL, TRUE);
+                    InvalidateRect(hwnd, NULL, FALSE);
             }
             return 0;
         }
         
         case WM_DESTROY:
-            CoUninitialize();
             PostQuitMessage(0);
             return 0;
             
