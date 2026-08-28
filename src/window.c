@@ -10,26 +10,25 @@ void OnPaint(HWND hwnd, const NotepadState *state){
 
     FillRect(hdc, &rect, (HBRUSH) (COLOR_WINDOW+1));
 
-    DrawTextW(hdc, state->text, state->index, &rect, DT_LEFT|DT_WORDBREAK|DT_EDITCONTROL );
+    DrawTextW(hdc, state->text, state->length, &rect, DT_LEFT|DT_WORDBREAK|DT_EDITCONTROL );
     EndPaint(hwnd, &ps);
 }
 
 void OnChar(HWND hwnd,const WPARAM wParam, NotepadState *state){
     if (wParam >= 32 && wParam != 127) {
-        if (state->index < MAX_BUFFER_LEN - 1) {
-            state->text[state->index++] = (wchar_t)wParam;
-            state->text[state->index] = '\0';
-            InvalidateRect(hwnd, NULL, FALSE);
-        }
-    } else if (wParam == VK_BACK && state->index > 0) { // Handle backspace
-        state->index--;
-        state->text[state->index] = '\0';
-        InvalidateRect(hwnd, NULL, FALSE);
-    } else if(wParam == VK_RETURN && state->index < MAX_BUFFER_LEN - 1){
-            state->text[state->index++] = '\n';
-            state->text[state->index] = '\0';
-            InvalidateRect(hwnd, NULL, FALSE);
+        Buffer_InsertChar(state,(wchar_t)wParam);
+    } 
+    
+    else if (wParam == VK_BACK) { // Handle backspace
+        Buffer_Backspace(state);
+    } 
+    
+    else if(wParam == VK_RETURN){
+        Buffer_InsertChar(state,L'\n');
     }
+
+    InvalidateRect(hwnd, NULL, FALSE);
+
 }
 
 
@@ -62,6 +61,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         
         case WM_DESTROY:
+            Buffer_Free(state);
             PostQuitMessage(0);
             return 0;
             

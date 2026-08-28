@@ -28,8 +28,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     RegisterClass(&wc);
 
-    NotepadState state = {0};
-
+    NotepadState state;
+    if (Buffer_Init(&state, BASE_BUFFER_LEN)==-1) {
+        return 0;
+    }
 
 
     HWND hwnd = CreateWindowEx(
