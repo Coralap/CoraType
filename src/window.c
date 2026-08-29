@@ -2,11 +2,14 @@
 #include <stdio.h>
 #include "buffer.h"
 #include <commdlg.h>
+#include <stringapiset.h>
+#include "file_io.h"
 
 #define IDM_FILE_NEW 1
 #define IDM_FILE_OPEN 2
 #define IDM_FILE_QUIT 3
 
+#define MAX_REASONABLE_SIZE 1500000000
 static void OnPaint(HWND hwnd, const NotepadState *state){
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd,&ps);
@@ -65,54 +68,6 @@ static void OnChar(HWND hwnd,const WPARAM wParam, NotepadState *state){
 
 }
 
-static void OpenFileDialog(HWND hwnd){
-    wchar_t file_path[256];
-
-    OPENFILENAMEW  ofn = { 0 };
-            ofn.lStructSize = sizeof(OPENFILENAMEW);
-            ofn.hwndOwner = hwnd;
-            ofn.lpstrFile = file_path;
-            ofn.lpstrFile[0] = '\0';
-            ofn.nMaxFile = 256;
-            ofn.lpstrFilter = L"Text Files\0*.txt\0\0"; //filter for only .txt
-            ofn.nFilterIndex = 1;
-            ofn.lpstrFileTitle = NULL;
-            ofn.nMaxFileTitle = 0;
-            ofn.lpstrInitialDir = NULL;
-            ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-            
-    if(GetOpenFileNameW(&ofn)==TRUE){
-        wprintf(L"%ls\n", file_path);
-        HANDLE fileHandle = CreateFileW(
-            file_path,
-            GENERIC_READ,
-            FILE_SHARE_READ,
-            NULL,
-            OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL,
-            NULL
-        );//creating a file handle with our new path
-
-        if (fileHandle == INVALID_HANDLE_VALUE)
-            return 1;
-        
-        wchar_t text_buffer[1024]; //holds text of the file
-        if(ReadFile(
-            fileHandle,
-            text_buffer,
-            sizeof(wchar_t)*1024,
-            NULL,
-            NULL
-        )){
-            wprintf(L"%ls\n", text_buffer);
-
-        }
-        CloseHandle(fileHandle);
-        
-    }
-}
-
-
 static void HandleCommands(HWND hwnd,const WPARAM wParam, NotepadState *state){
     WORD id = LOWORD(wParam);
     switch (id) {
@@ -122,7 +77,7 @@ static void HandleCommands(HWND hwnd,const WPARAM wParam, NotepadState *state){
             break;
 
         case IDM_FILE_OPEN:
-            OpenFileDialog(hwnd);
+            File_Open(hwnd,state);
             break;
 
         case IDM_FILE_QUIT:

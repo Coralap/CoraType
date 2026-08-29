@@ -1,0 +1,121 @@
+#include "file_io.h"
+#include <commdlg.h>
+#include <stdlib.h>
+
+#define MAX_REASONABLE_SIZE 1500000000 // 1.5 GB
+
+static bool ShowOpenFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len){
+    OPENFILENAMEW  ofn = { 0 };
+            ofn.lStructSize = sizeof(OPENFILENAMEW);
+            ofn.hwndOwner = hwnd;
+            ofn.lpstrFile = out_path;
+            ofn.lpstrFile[0] = '\0';
+            ofn.nMaxFile = max_len;
+            ofn.lpstrFilter = L"Text Files\0*.txt\0\0"; //filter for only .txt
+            ofn.nFilterIndex = 1;
+            ofn.lpstrFileTitle = NULL;
+            ofn.nMaxFileTitle = 0;
+            ofn.lpstrInitialDir = NULL;
+            ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    if(GetOpenFileNameW(&ofn)==TRUE)
+        return TRUE;
+    return FALSE;
+}
+
+static char* ReadRawFileBytes(const wchar_t *file_path,DWORD* out_size){
+        HANDLE fileHandle = CreateFileW(
+            file_path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );//creating a file handle with our new path
+        //check if we got the handle
+        if (fileHandle == INVALID_HANDLE_VALUE)
+            return NULL;
+
+        LARGE_INTEGER fileSize;
+        //check for size
+        if(GetFileSizeEx(fileHandle,&fileSize)==0||fileSize.QuadPart > MAX_REASONABLE_SIZE){
+            CloseHandle(fileHandle);
+            return NULL;
+        }
+        //check for empty file
+        if (fileSize.QuadPart == 0) {
+            CloseHandle(fileHandle);
+            *out_size = 0;
+            char *empty = (char*)malloc(1);
+            if (empty) empty[0] = '\0';
+            return empty;
+        }
+        
+        //alocate space for the new text with and extra byte for a null terminator
+        char *bytes = (char*)malloc(fileSize.QuadPart + 1);
+            if (!bytes) {
+                CloseHandle(fileHandle);
+                return NULL;
+        }
+        
+        DWORD bytesRead = 0;
+        if (!ReadFile(fileHandle, bytes, (DWORD)fileSize.QuadPart, &bytesRead, NULL)) {
+            free(bytes);
+            CloseHandle(fileHandle);
+            return NULL;
+        }
+
+        bytes[bytesRead] = '\0';
+        *out_size = bytesRead;
+
+        CloseHandle(fileHandle);
+        return bytes;
+}
+
+
+static bool LoadUtf8IntoState(const char *utf8_data, DWORD byte_count, NotepadState *state) {
+    if (byte_count == 0) {
+        Buffer_Clear(state);
+        return true;
+    }
+
+    if (Buffer_Resize(state, byte_count + 1) == -1) { //check if the resize worked
+        return false;
+    }
+
+    int chars_written = MultiByteToWideChar(CP_UTF8, 0, utf8_data, -1, state->text, (int)state->capacity); //turn into utf
+    if (chars_written <= 0) { //return false incase of a fail
+        return false;
+    }
+
+    state->length = (size_t)(chars_written - 1);
+    state->text[state->length] = L'\0';
+    return true;
+}
+
+
+bool File_Open(HWND hwnd, NotepadState *state) {
+    wchar_t filePath[MAX_PATH];
+    if (!ShowOpenFileDialog(hwnd, filePath, MAX_PATH)) {
+        return false; // clicked cancel
+    }
+
+    DWORD byteCount = 0;
+    char *rawBytes = ReadRawFileBytes(filePath, &byteCount);
+    if (!rawBytes) {
+        MessageBoxW(hwnd, L"Failed to read file.", L"Error", MB_ICONERROR | MB_OK);
+        return false; //add error
+    }
+
+    bool success = LoadUtf8IntoState(rawBytes, byteCount, state);
+    free(rawBytes); //free unused memory
+
+    if (success) {
+        InvalidateRect(hwnd, NULL, FALSE);
+    } else {
+        MessageBoxW(hwnd, L"Failed to parse file text.", L"Error", MB_ICONERROR | MB_OK);
+    }
+
+    return success;
+}

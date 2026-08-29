@@ -43,6 +43,17 @@ void Buffer_Clear(NotepadState *state) {
 }
 
 
+int Buffer_Resize(NotepadState *state,size_t new_size) {
+        wchar_t* new_text = (wchar_t*)realloc(state->text,sizeof(wchar_t)*new_size);
+        if(!new_text){return -1;}
+
+        state->text = new_text;
+        state->capacity = new_size;
+        return 1;
+}
+
+
+
 void Buffer_Free(NotepadState *state) {
     free(state->text);
     state->text = NULL;
