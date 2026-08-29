@@ -66,22 +66,49 @@ static void OnChar(HWND hwnd,const WPARAM wParam, NotepadState *state){
 }
 
 static void OpenFileDialog(HWND hwnd){
-    wchar_t fileBuffer[256];
+    wchar_t file_path[256];
 
-    OPENFILENAMEW  file_name = { 0 };
-            file_name.lStructSize = sizeof(OPENFILENAMEW);
-            file_name.hwndOwner = hwnd;
-            file_name.lpstrFile = fileBuffer;
-            file_name.lpstrFile[0] = '\0';
-            file_name.nMaxFile = 256;
-            file_name.lpstrFilter = L"Text Files\0*.txt\0\0";
-            file_name.nFilterIndex = 1;
-            file_name.lpstrFileTitle = NULL;
-            file_name.nMaxFileTitle = 0;
-            file_name.lpstrInitialDir = NULL;
-            file_name.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-    if(GetOpenFileNameW(&file_name)==TRUE){
-        wprintf(L"%ls\n", fileBuffer);
+    OPENFILENAMEW  ofn = { 0 };
+            ofn.lStructSize = sizeof(OPENFILENAMEW);
+            ofn.hwndOwner = hwnd;
+            ofn.lpstrFile = file_path;
+            ofn.lpstrFile[0] = '\0';
+            ofn.nMaxFile = 256;
+            ofn.lpstrFilter = L"Text Files\0*.txt\0\0"; //filter for only .txt
+            ofn.nFilterIndex = 1;
+            ofn.lpstrFileTitle = NULL;
+            ofn.nMaxFileTitle = 0;
+            ofn.lpstrInitialDir = NULL;
+            ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+            
+    if(GetOpenFileNameW(&ofn)==TRUE){
+        wprintf(L"%ls\n", file_path);
+        HANDLE fileHandle = CreateFileW(
+            file_path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );//creating a file handle with our new path
+
+        if (fileHandle == INVALID_HANDLE_VALUE)
+            return 1;
+        
+        wchar_t text_buffer[1024]; //holds text of the file
+        if(ReadFile(
+            fileHandle,
+            text_buffer,
+            sizeof(wchar_t)*1024,
+            NULL,
+            NULL
+        )){
+            wprintf(L"%ls\n", text_buffer);
+
+        }
+        CloseHandle(fileHandle);
+        
     }
 }
 
