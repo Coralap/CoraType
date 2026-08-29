@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -O2 -DUNICODE -D_UNICODE
-LDFLAGS = -municode -mwindows
+LDFLAGS = -municode -mwindows -lcomdlg32
 
 TARGET = a.exe
 SRCS = src/main.c src/window.c src/buffer.c

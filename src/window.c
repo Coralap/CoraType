@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include "buffer.h"
+#include <commdlg.h>
 
 #define IDM_FILE_NEW 1
 #define IDM_FILE_OPEN 2
@@ -64,13 +65,37 @@ static void OnChar(HWND hwnd,const WPARAM wParam, NotepadState *state){
 
 }
 
+static void OpenFileDialog(HWND hwnd){
+    wchar_t fileBuffer[256];
+
+    OPENFILENAMEW  file_name = { 0 };
+            file_name.lStructSize = sizeof(OPENFILENAMEW);
+            file_name.hwndOwner = hwnd;
+            file_name.lpstrFile = fileBuffer;
+            file_name.lpstrFile[0] = '\0';
+            file_name.nMaxFile = 256;
+            file_name.lpstrFilter = L"Text Files\0*.txt\0\0";
+            file_name.nFilterIndex = 1;
+            file_name.lpstrFileTitle = NULL;
+            file_name.nMaxFileTitle = 0;
+            file_name.lpstrInitialDir = NULL;
+            file_name.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+    if(GetOpenFileNameW(&file_name)==TRUE){
+        wprintf(L"%ls\n", fileBuffer);
+    }
+}
+
+
 static void HandleCommands(HWND hwnd,const WPARAM wParam, NotepadState *state){
     WORD id = LOWORD(wParam);
     switch (id) {
         case IDM_FILE_NEW:
-            state->length = 0;
-            state->text[0] = L'\0';
+            Buffer_Clear(state);
             InvalidateRect(hwnd, NULL, FALSE);
+            break;
+
+        case IDM_FILE_OPEN:
+            OpenFileDialog(hwnd);
             break;
 
         case IDM_FILE_QUIT:

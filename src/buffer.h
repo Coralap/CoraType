@@ -12,4 +12,5 @@ typedef struct {
 int Buffer_Init(NotepadState *state, size_t initial_capacity);
 void Buffer_InsertChar(NotepadState *state, wchar_t ch);
 void Buffer_Backspace(NotepadState *state);
+void Buffer_Clear(NotepadState *state);
 void Buffer_Free(NotepadState *state);

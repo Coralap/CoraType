@@ -35,7 +35,12 @@ void Buffer_Backspace(NotepadState *state) {
     }
 }
 
-
+void Buffer_Clear(NotepadState *state) {
+    state->length = 0;
+    if (state->text) {
+        state->text[0] = L'\0';
+    }
+}
 
 
 void Buffer_Free(NotepadState *state) {
