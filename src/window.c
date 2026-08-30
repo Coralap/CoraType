@@ -4,6 +4,7 @@
 #include <commdlg.h>
 #include <stringapiset.h>
 #include "file_io.h"
+#include <winuser.h>
 
 #define IDM_FILE_NEW 1
 #define IDM_FILE_OPEN 2
@@ -12,6 +13,10 @@
 #define IDM_FILE_SAVE_AS 5
 
 #define MAX_REASONABLE_SIZE 1500000000
+
+static void UpdateCaretPos(HDC hdc, const NotepadState *state,RECT rect);
+static void InitCaret(HWND hwnd);
+
 static void OnPaint(HWND hwnd, const NotepadState *state){
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd,&ps);
@@ -37,7 +42,7 @@ static void OnPaint(HWND hwnd, const NotepadState *state){
 
     FillRect(hdcMem, &rect, (HBRUSH) (COLOR_WINDOW+1)); //background
 
-    DrawTextW(hdcMem, state->text, (int)state->length, &rect, DT_LEFT | DT_WORDBREAK | DT_EDITCONTROL); //text
+    DrawTextW(hdcMem, state->text, (int)state->length, &rect, DT_LEFT | DT_EDITCONTROL); //text
 
     BitBlt(hdc,
            rect.left, rect.top,
@@ -50,7 +55,10 @@ static void OnPaint(HWND hwnd, const NotepadState *state){
     SelectObject(hdcMem, hbmOld);
     DeleteObject(hbmMem);
     DeleteDC(hdcMem);
+    UpdateCaretPos(hdc,state,rect);
+
     EndPaint(hwnd, &ps);
+
 }
 
 static void OnChar(HWND hwnd,const WPARAM wParam, NotepadState *state){
@@ -156,6 +164,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         case WM_COMMAND:
             HandleCommands(hwnd,wParam,state);
             return 0;
+
+        case WM_SETFOCUS:
+            InitCaret(hwnd);
+            return 0;
+
+        
+        case WM_KILLFOCUS:
+            DestroyCaret();
+            return 0;
+
         case WM_DESTROY:
             Buffer_Free(state);
             PostQuitMessage(0);
@@ -167,4 +185,53 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             return DefWindowProc(hwnd, uMsg, wParam, lParam);
 
     }
+}
+
+static void InitCaret(HWND hwnd){
+    HDC hdc = GetDC(hwnd);
+            TEXTMETRICW tm;
+            GetTextMetricsW(hdc,&tm);
+            int lineHeight = tm.tmExternalLeading + tm.tmHeight; // calculate the line height using font and other stuff.
+            ReleaseDC(hwnd, hdc);
+            
+            CreateCaret(
+                hwnd,
+                (HBITMAP) 0,
+                2,
+                lineHeight
+            );
+    ShowCaret(hwnd);
+
+
+
+}
+
+static void UpdateCaretPos(HDC hdc, const NotepadState *state,RECT rect){
+
+    TEXTMETRICW tm;
+    GetTextMetricsW(hdc, &tm);
+    int lineHeight = tm.tmHeight + tm.tmExternalLeading;
+    int lineCount = 0;
+    size_t lineStart = 0;
+
+    for (size_t i = 0; i < state->length; i++) {//count lines and find the last one's index
+        if (state->text[i] == L'\n') {
+            lineCount++;
+            lineStart = i + 1; // Start of the next line
+        }
+    }
+
+    size_t currentLineLength = state->length - lineStart;
+    SIZE lineSize = {0};
+
+    if (currentLineLength > 0) {
+        GetTextExtentPoint32W(hdc, &state->text[lineStart], (int)currentLineLength, &lineSize); //find info about the text from the last line
+    }
+
+    //calculate and set the caret pose
+    int caretX = state->is_rtl ? rect.right - lineSize.cx : lineSize.cx;
+    int caretY = lineCount * lineHeight;
+    SetCaretPos(caretX, caretY);
+
+
 }

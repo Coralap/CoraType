@@ -9,6 +9,7 @@ typedef struct {
     size_t capacity;
     wchar_t current_file_path[_MAX_PATH];
     bool is_dirty;
+    bool is_rtl;
 } NotepadState;
 
 int Buffer_Init(NotepadState *state, size_t initial_capacity);
