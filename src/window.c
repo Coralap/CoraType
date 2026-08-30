@@ -8,6 +8,8 @@
 #define IDM_FILE_NEW 1
 #define IDM_FILE_OPEN 2
 #define IDM_FILE_QUIT 3
+#define IDM_FILE_SAVE 4
+
 
 #define MAX_REASONABLE_SIZE 1500000000
 static void OnPaint(HWND hwnd, const NotepadState *state){
@@ -80,6 +82,10 @@ static void HandleCommands(HWND hwnd,const WPARAM wParam, NotepadState *state){
             File_Open(hwnd,state);
             break;
 
+        case IDM_FILE_SAVE:
+            wprintf(L"%ls\n", state->current_file_path);
+            break;
+
         case IDM_FILE_QUIT:
             SendMessage(hwnd, WM_CLOSE, 0, 0);
             break;
@@ -101,6 +107,7 @@ static void AddMenus(HWND hwnd) {
 
     AppendMenuW(hMenu, MF_STRING, IDM_FILE_NEW, L"&New");
     AppendMenuW(hMenu, MF_STRING, IDM_FILE_OPEN, L"&Open");
+    AppendMenuW(hMenu, MF_STRING, IDM_FILE_SAVE, L"&Save");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
     AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
 

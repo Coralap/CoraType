@@ -40,6 +40,9 @@ void Buffer_Clear(NotepadState *state) {
     if (state->text) {
         state->text[0] = L'\0';
     }
+    
+    state->current_file_path[0] = L'\0';
+    
 }
 
 

@@ -4,7 +4,7 @@
 
 #define MAX_REASONABLE_SIZE 1500000000 // 1.5 GB
 
-static bool ShowOpenFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len){
+static bool ShowOpenFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len,NotepadState* state){
     OPENFILENAMEW  ofn = { 0 };
             ofn.lStructSize = sizeof(OPENFILENAMEW);
             ofn.hwndOwner = hwnd;
@@ -18,8 +18,10 @@ static bool ShowOpenFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len){
             ofn.lpstrInitialDir = NULL;
             ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-    if(GetOpenFileNameW(&ofn)==TRUE)
+    if(GetOpenFileNameW(&ofn)==TRUE){
+        wcscpy(state->current_file_path, out_path);
         return TRUE;
+    }
     return FALSE;
 }
 
@@ -97,7 +99,7 @@ static bool LoadUtf8IntoState(const char *utf8_data, DWORD byte_count, NotepadSt
 
 bool File_Open(HWND hwnd, NotepadState *state) {
     wchar_t filePath[MAX_PATH];
-    if (!ShowOpenFileDialog(hwnd, filePath, MAX_PATH)) {
+    if (!ShowOpenFileDialog(hwnd, filePath, MAX_PATH,state)) {
         return false; // clicked cancel
     }
 
