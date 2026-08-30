@@ -9,8 +9,8 @@ static bool ShowOpenFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len,Notepa
             ofn.lStructSize = sizeof(OPENFILENAMEW);
             ofn.hwndOwner = hwnd;
             ofn.lpstrFile = out_path;
-            ofn.lpstrFile[0] = '\0';
-            ofn.nMaxFile = max_len;
+            ofn.lpstrFile[0] = L'\0';
+            ofn.nMaxFile = (DWORD)max_len;
             ofn.lpstrFilter = L"Text Files\0*.txt\0\0"; //filter for only .txt
             ofn.nFilterIndex = 1;
             ofn.lpstrFileTitle = NULL;
@@ -24,6 +24,29 @@ static bool ShowOpenFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len,Notepa
     }
     return FALSE;
 }
+
+bool ShowSaveFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len){
+    OPENFILENAMEW  ofn = { 0 };
+            ofn.lStructSize = sizeof(OPENFILENAMEW);
+            ofn.hwndOwner = hwnd;
+            ofn.lpstrFile = out_path;
+            ofn.lpstrFile[0] = L'\0';
+            ofn.nMaxFile = (DWORD)max_len;
+            ofn.lpstrFilter = L"Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0\0"; // filter for txt and other files
+            ofn.nFilterIndex = 1;
+            ofn.lpstrFileTitle = NULL;
+            ofn.nMaxFileTitle = 0;
+            ofn.lpstrInitialDir = NULL;
+            ofn.lpstrDefExt = L"txt";
+            ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+
+    return GetSaveFileNameW(&ofn)==TRUE;
+
+}
+
+
+
+
 
 static char* ReadRawFileBytes(const wchar_t *file_path,DWORD* out_size){
         HANDLE fileHandle = CreateFileW(
@@ -123,19 +146,19 @@ bool File_Open(HWND hwnd, NotepadState *state) {
 }
 
 
-bool SavePathedFile(NotepadState *state){
-    if(state->current_file_path[0] == L'\0')
-        return FALSE;
+
+static bool SavePathedFile(NotepadState *state){
 
     HANDLE fileHandle = CreateFileW(
         state->current_file_path,
         GENERIC_WRITE,
-        FILE_SHARE_READ,
+        0,
         NULL,
-        OPEN_EXISTING,
+        CREATE_ALWAYS, // Creates new file or overwrites an existing file
         FILE_ATTRIBUTE_NORMAL,
         NULL
     );//create a file handle with a write request
+
     //check if we got the handle
     if (fileHandle == INVALID_HANDLE_VALUE)
         return FALSE;
@@ -163,4 +186,22 @@ bool SavePathedFile(NotepadState *state){
     CloseHandle(fileHandle);
 
     return (success && bytesWritten == (DWORD)utf8_size);
+}
+bool File_Save(HWND hwnd, NotepadState *state) {
+    if (state->current_file_path[0] == L'\0') {
+        if (!ShowSaveFileDialog(hwnd, state->current_file_path, MAX_PATH)) {
+            return false; // User cancelled
+        }
+    }
+    return SavePathedFile(state);
+}
+
+bool File_Save_As(HWND hwnd, NotepadState *state) {
+    wchar_t newPath[MAX_PATH] = { 0 };
+    if (!ShowSaveFileDialog(hwnd, newPath, MAX_PATH)) {
+        return false; // user cancled.
+    }
+
+    wcscpy(state->current_file_path, newPath);
+    return SavePathedFile(state);
 }

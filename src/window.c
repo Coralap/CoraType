@@ -9,7 +9,7 @@
 #define IDM_FILE_OPEN 2
 #define IDM_FILE_QUIT 3
 #define IDM_FILE_SAVE 4
-
+#define IDM_FILE_SAVE_AS 5
 
 #define MAX_REASONABLE_SIZE 1500000000
 static void OnPaint(HWND hwnd, const NotepadState *state){
@@ -83,8 +83,11 @@ static void HandleCommands(HWND hwnd,const WPARAM wParam, NotepadState *state){
             break;
 
         case IDM_FILE_SAVE:
-            wprintf(L"%ls\n", state->current_file_path);
-            SavePathedFile(state);
+            File_Save(hwnd,state);
+            break;
+
+        case IDM_FILE_SAVE_AS:
+            File_Save_As(hwnd,state);
             break;
 
         case IDM_FILE_QUIT:
@@ -109,6 +112,8 @@ static void AddMenus(HWND hwnd) {
     AppendMenuW(hMenu, MF_STRING, IDM_FILE_NEW, L"&New");
     AppendMenuW(hMenu, MF_STRING, IDM_FILE_OPEN, L"&Open");
     AppendMenuW(hMenu, MF_STRING, IDM_FILE_SAVE, L"&Save");
+    AppendMenuW(hMenu, MF_STRING, IDM_FILE_SAVE_AS, L"&Save As");
+
     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
     AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
 
@@ -123,6 +128,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
     {
         CREATESTRUCT *pCreate = (CREATESTRUCT*)lParam;
         state = (NotepadState*)pCreate->lpCreateParams;
+
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)state);
         AddMenus(hwnd);
     }

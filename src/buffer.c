@@ -10,6 +10,8 @@ int Buffer_Init(NotepadState *state, size_t initial_capacity) {
     state->length = 0;
     state->text[0] = L'\0';
     state->capacity = initial_capacity;
+    state->current_file_path[0] = L'\0';
+
     return 0;
 
 }
