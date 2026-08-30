@@ -121,3 +121,46 @@ bool File_Open(HWND hwnd, NotepadState *state) {
 
     return success;
 }
+
+
+bool SavePathedFile(NotepadState *state){
+    if(state->current_file_path[0] == L'\0')
+        return FALSE;
+
+    HANDLE fileHandle = CreateFileW(
+        state->current_file_path,
+        GENERIC_WRITE,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );//create a file handle with a write request
+    //check if we got the handle
+    if (fileHandle == INVALID_HANDLE_VALUE)
+        return FALSE;
+
+    int utf8_size = WideCharToMultiByte(CP_UTF8, 0, state->text, (int)state->length, NULL, 0, NULL, NULL); // get the size of the text
+    if (utf8_size <= 0) {
+        CloseHandle(fileHandle);
+        return FALSE;
+    }
+
+    // use the size to allocate mem to a temporary buffer
+    char *utf8_data = (char*)malloc(utf8_size);
+    if (!utf8_data) {
+        CloseHandle(fileHandle);
+        return FALSE;
+    }
+
+    WideCharToMultiByte(CP_UTF8, 0, state->text, (int)state->length, utf8_data, utf8_size, NULL, NULL);
+
+    // write to disk
+    DWORD bytesWritten = 0;
+    BOOL success = WriteFile(fileHandle, utf8_data, (DWORD)utf8_size, &bytesWritten, NULL);
+
+    free(utf8_data);
+    CloseHandle(fileHandle);
+
+    return (success && bytesWritten == (DWORD)utf8_size);
+}

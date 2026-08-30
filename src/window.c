@@ -84,6 +84,7 @@ static void HandleCommands(HWND hwnd,const WPARAM wParam, NotepadState *state){
 
         case IDM_FILE_SAVE:
             wprintf(L"%ls\n", state->current_file_path);
+            SavePathedFile(state);
             break;
 
         case IDM_FILE_QUIT:
