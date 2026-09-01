@@ -1,6 +1,8 @@
 #pragma once
 #include <windows.h>
 #include "text_buffer.h"
+#include <stdlib.h>
+#include <stdbool.h>
 typedef enum {
     BUFFER_ORIGINAL,
     BUFFER_ADDED
@@ -23,3 +25,10 @@ typedef struct {
     Node *head;
     Node *tail;
 } PieceTable;
+
+
+bool Text_Init(TextBuffer* buffer, size_t initial_capacity);
+bool PieceTableInsertChar(PieceTable *table, const wchar_t text, size_t pos);
+size_t PieceTable_GetTotalLength(const PieceTable *table);
+bool PieceTable_GetText(const PieceTable* table, wchar_t *out, size_t max_len);
+void PieceTable_Free(PieceTable* table);

@@ -1,6 +1,5 @@
 #include "piece_table.h"
-#include <stdlib.h>
-#include <stdbool.h>
+
 
 bool PieceTable_Init(PieceTable *table, const wchar_t *text, size_t len) {
     // allocate and copy original text
@@ -174,4 +173,61 @@ bool PieceTableInsertChar(PieceTable *table, const wchar_t text, size_t pos) {
     }
 
     return true;
+}
+
+size_t PieceTable_GetTotalLength(const PieceTable *table){
+    Node *curr = table->head;
+    size_t len = 0;
+
+    while (curr != NULL) {
+        len +=curr->length;
+        curr = curr->next;
+    }
+    return len;
+}
+bool PieceTable_GetText(const PieceTable* table, wchar_t *out, size_t max_len){
+    if (!out || max_len == 0) return false;
+
+    size_t dest_offset = 0;
+    Node *curr = table->head;
+
+        while (curr != NULL && dest_offset < max_len - 1) { 
+        //only copy the allowed number of characters
+        size_t to_copy = curr->length;
+        if (dest_offset + to_copy > max_len - 1) {
+            to_copy = (max_len - 1) - dest_offset;
+        }
+
+        const wchar_t *src = (curr->type == BUFFER_ORIGINAL)
+                                    ? table->original + curr->start
+                                    : table->added.text + curr->start; //move the pointer according to the node
+
+        memcpy(out + dest_offset, src, to_copy * sizeof(wchar_t));
+        dest_offset += to_copy;
+
+        curr = curr->next;
+    }
+
+    out[dest_offset] = L'\0';
+    return true;
+}
+
+void PieceTable_Free(PieceTable* table) {
+    if (!table) return;
+
+    free(table->original);
+    table->original = NULL;
+    table->original_length = 0;
+
+    Text_Free(&table->added);
+
+    Node *curr = table->head; //free all nodes
+    while (curr != NULL) {
+        Node *next = curr->next;
+        free(curr);
+        curr = next;
+    }
+
+    table->head = NULL;
+    table->tail = NULL;
 }
