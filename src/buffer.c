@@ -73,3 +73,22 @@ void State_Free(NotepadState *state) {
     state->render_capacity = 0;
     state->cursor_pos = 0;
 }
+
+void State_Rebase(NotepadState *state, size_t total_len) {
+    if (!state) return;
+
+    size_t saved_cursor = state->cursor_pos;
+    wchar_t saved_path[MAX_PATH];
+    wcscpy(saved_path, state->current_file_path);
+
+    // free all nodes
+    PieceTable_Free(&state->piece_table);
+
+    // make a new buffer with all the text
+    PieceTable_Init(&state->piece_table, state->render_buffer, total_len);
+
+    // restore editor data
+    state->cursor_pos = saved_cursor;
+    wcscpy(state->current_file_path, saved_path);
+    state->is_dirty = false;
+}

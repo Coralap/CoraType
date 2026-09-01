@@ -100,25 +100,39 @@ static char* ReadRawFileBytes(const wchar_t *file_path,DWORD* out_size){
 
 
 static bool LoadUtf8IntoState(const char *utf8_data, DWORD byte_count, NotepadState *state) {
+    if(!state) return false;
+    State_Free(state);
+
     if (byte_count == 0) {
-        Buffer_Clear(state);
-        return true;
+        return State_Init(state, L"" ,0);
     }
 
-    if (Buffer_Resize(state, byte_count + 1) == -1) { //check if the resize worked
+    State_EnsureRenderCapacity(state, byte_count + 1);
+
+    // Find required wide character count (without null terminator)
+    int wide_count = MultiByteToWideChar(CP_UTF8, 0, utf8_data, (int)byte_count, NULL, 0);
+    if (wide_count <= 0) {
+        State_Init(state, L"", 0);
         return false;
     }
 
-    int chars_written = MultiByteToWideChar(CP_UTF8, 0, utf8_data, -1, state->text, (int)state->capacity); //turn into utf
-    if (chars_written <= 0) { //return false incase of a fail
+    // Allocate temporary buffer to hold converted text
+    wchar_t *wide_text = (wchar_t*)malloc((wide_count + 1) * sizeof(wchar_t));
+    if (!wide_text) {
+        State_Init(state, L"", 0);
         return false;
     }
 
-    state->length = (size_t)(chars_written - 1);
-    state->text[state->length] = L'\0';
-    return true;
+    // convert text
+    MultiByteToWideChar(CP_UTF8, 0, utf8_data, (int)byte_count, wide_text, wide_count);
+    wide_text[wide_count] = L'\0';
+
+    // init piece table and update the original buffer
+    bool ok = State_Init(state, wide_text, (size_t)wide_count);
+    free(wide_text);
+
+    return ok;
 }
-
 
 bool File_Open(HWND hwnd, NotepadState *state) {
     wchar_t filePath[MAX_PATH];
@@ -148,6 +162,7 @@ bool File_Open(HWND hwnd, NotepadState *state) {
 
 
 static bool SavePathedFile(NotepadState *state){
+    if (!state || state->current_file_path[0] == L'\0') return false;
 
     HANDLE fileHandle = CreateFileW(
         state->current_file_path,
@@ -163,7 +178,18 @@ static bool SavePathedFile(NotepadState *state){
     if (fileHandle == INVALID_HANDLE_VALUE)
         return false;
 
-    int utf8_size = WideCharToMultiByte(CP_UTF8, 0, state->text, (int)state->length, NULL, 0, NULL, NULL); // get the size of the text
+    //make sure the buffer is updated
+    size_t total_len = PieceTable_GetTotalLength(&state->piece_table);
+    State_EnsureRenderCapacity(state, total_len);
+    PieceTable_GetText(&state->piece_table, state->render_buffer, state->render_capacity);
+
+    if (total_len == 0) {
+        CloseHandle(fileHandle);
+        state->is_dirty = false;
+        return true;
+    }
+
+    int utf8_size = WideCharToMultiByte(CP_UTF8, 0, state->render_buffer,(int)total_len, NULL, 0, NULL, NULL); // get the size of the text
     if (utf8_size <= 0) {
         CloseHandle(fileHandle);
         return false;
@@ -176,7 +202,7 @@ static bool SavePathedFile(NotepadState *state){
         return false;
     }
 
-    WideCharToMultiByte(CP_UTF8, 0, state->text, (int)state->length, utf8_data, utf8_size, NULL, NULL);
+    WideCharToMultiByte(CP_UTF8, 0, state->render_buffer,(int)total_len, utf8_data, utf8_size, NULL, NULL);
 
     // write to disk
     DWORD bytesWritten = 0;
@@ -184,6 +210,12 @@ static bool SavePathedFile(NotepadState *state){
 
     free(utf8_data);
     CloseHandle(fileHandle);
+
+    if (success && bytesWritten == (DWORD)utf8_size) {
+        State_Rebase(state, total_len);
+        return true;
+    }
+
 
     return (success && bytesWritten == (DWORD)utf8_size);
 }

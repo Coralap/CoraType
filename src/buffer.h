@@ -24,3 +24,4 @@ bool State_InsertChar(NotepadState *state, wchar_t ch);
 bool State_Backspace(NotepadState *state);
 void State_EnsureRenderCapacity(NotepadState *state, size_t needed_len);
 void State_Free(NotepadState *state);
+void State_Rebase(NotepadState *state, size_t total_len);

@@ -4,6 +4,7 @@
 #include <commdlg.h>
 #include <stringapiset.h>
 #include <winuser.h>
+#include "file_io.h"
 
 #define IDM_FILE_NEW 1
 #define IDM_FILE_OPEN 2
@@ -89,15 +90,15 @@ static void HandleCommands(HWND hwnd,const WPARAM wParam, NotepadState *state){
             break;
 
         case IDM_FILE_OPEN:
-            //File_Open(hwnd,state); needs adapting
+            File_Open(hwnd,state);
             break;
 
         case IDM_FILE_SAVE:
-            //File_Save(hwnd,state); needs adapting
+            File_Save(hwnd,state);
             break;
 
         case IDM_FILE_SAVE_AS:
-            //File_Save_As(hwnd,state);
+            File_Save_As(hwnd,state);
             break;
 
         case IDM_FILE_QUIT:
