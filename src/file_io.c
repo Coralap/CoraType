@@ -18,11 +18,11 @@ static bool ShowOpenFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len,Notepa
             ofn.lpstrInitialDir = NULL;
             ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-    if(GetOpenFileNameW(&ofn)==TRUE){
+    if(GetOpenFileNameW(&ofn)==true){
         wcscpy(state->current_file_path, out_path);
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
 bool ShowSaveFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len){
@@ -40,7 +40,7 @@ bool ShowSaveFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len){
             ofn.lpstrDefExt = L"txt";
             ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
 
-    return GetSaveFileNameW(&ofn)==TRUE;
+    return GetSaveFileNameW(&ofn)==true;
 
 }
 
@@ -137,7 +137,7 @@ bool File_Open(HWND hwnd, NotepadState *state) {
     free(rawBytes); //free unused memory
 
     if (success) {
-        InvalidateRect(hwnd, NULL, FALSE);
+        InvalidateRect(hwnd, NULL, false);
     } else {
         MessageBoxW(hwnd, L"Failed to parse file text.", L"Error", MB_ICONERROR | MB_OK);
     }
@@ -161,19 +161,19 @@ static bool SavePathedFile(NotepadState *state){
 
     //check if we got the handle
     if (fileHandle == INVALID_HANDLE_VALUE)
-        return FALSE;
+        return false;
 
     int utf8_size = WideCharToMultiByte(CP_UTF8, 0, state->text, (int)state->length, NULL, 0, NULL, NULL); // get the size of the text
     if (utf8_size <= 0) {
         CloseHandle(fileHandle);
-        return FALSE;
+        return false;
     }
 
     // use the size to allocate mem to a temporary buffer
     char *utf8_data = (char*)malloc(utf8_size);
     if (!utf8_data) {
         CloseHandle(fileHandle);
-        return FALSE;
+        return false;
     }
 
     WideCharToMultiByte(CP_UTF8, 0, state->text, (int)state->length, utf8_data, utf8_size, NULL, NULL);

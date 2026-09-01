@@ -74,7 +74,7 @@ static void OnChar(HWND hwnd,const WPARAM wParam, NotepadState *state){
         Buffer_InsertChar(state,L'\n');
     }
 
-    InvalidateRect(hwnd, NULL, FALSE);
+    InvalidateRect(hwnd, NULL, false);
 
 }
 
@@ -83,7 +83,7 @@ static void HandleCommands(HWND hwnd,const WPARAM wParam, NotepadState *state){
     switch (id) {
         case IDM_FILE_NEW:
             Buffer_Clear(state);
-            InvalidateRect(hwnd, NULL, FALSE);
+            InvalidateRect(hwnd, NULL, false);
             break;
 
         case IDM_FILE_OPEN:
