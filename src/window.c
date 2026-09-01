@@ -3,7 +3,6 @@
 #include "buffer.h"
 #include <commdlg.h>
 #include <stringapiset.h>
-#include "file_io.h"
 #include <winuser.h>
 
 #define IDM_FILE_NEW 1
@@ -17,7 +16,7 @@
 static void UpdateCaretPos(HDC hdc, const NotepadState *state,RECT rect);
 static void InitCaret(HWND hwnd);
 
-static void OnPaint(HWND hwnd, const NotepadState *state){
+static void OnPaint(HWND hwnd, NotepadState *state){
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd,&ps);
     HBITMAP hbmMem, hbmOld;
@@ -41,8 +40,11 @@ static void OnPaint(HWND hwnd, const NotepadState *state){
     hbmOld = SelectObject(hdcMem, hbmMem); // use the bitmap
 
     FillRect(hdcMem, &rect, (HBRUSH) (COLOR_WINDOW+1)); //background
-
-    DrawTextW(hdcMem, state->text, (int)state->length, &rect, DT_LEFT | DT_EDITCONTROL); //text
+    
+    size_t total_len = PieceTable_GetTotalLength(&state->piece_table); //get len of string
+    State_EnsureRenderCapacity(state, total_len); //check the text buffer is long enough
+    PieceTable_GetText(&state->piece_table, state->render_buffer, state->render_capacity); //write the text.
+    DrawTextW(hdcMem, state->render_buffer, (int)total_len, &rect, DT_LEFT | DT_EDITCONTROL); //text
 
     BitBlt(hdc,
            rect.left, rect.top,
@@ -63,15 +65,10 @@ static void OnPaint(HWND hwnd, const NotepadState *state){
 
 static void OnChar(HWND hwnd,const WPARAM wParam, NotepadState *state){
     if (wParam >= 32 && wParam != 127) { //Handle normal keyboard inputs
-        Buffer_InsertChar(state,(wchar_t)wParam);
+        State_InsertChar(state,(wchar_t)wParam);
     } 
-    
-    else if (wParam == VK_BACK) { // Handle backspace
-        Buffer_Backspace(state);
-    } 
-    
     else if(wParam == VK_RETURN){ // Handle enter
-        Buffer_InsertChar(state,L'\n');
+        State_InsertChar(state,L'\n');
     }
 
     InvalidateRect(hwnd, NULL, false);
@@ -82,20 +79,21 @@ static void HandleCommands(HWND hwnd,const WPARAM wParam, NotepadState *state){
     WORD id = LOWORD(wParam);
     switch (id) {
         case IDM_FILE_NEW:
-            Buffer_Clear(state);
-            InvalidateRect(hwnd, NULL, false);
+            State_Free(state);
+            State_Init(state, L"", 0);
+            InvalidateRect(hwnd, NULL, FALSE);
             break;
 
         case IDM_FILE_OPEN:
-            File_Open(hwnd,state);
+            //File_Open(hwnd,state); needs adapting
             break;
 
         case IDM_FILE_SAVE:
-            File_Save(hwnd,state);
+            //File_Save(hwnd,state); needs adapting
             break;
 
         case IDM_FILE_SAVE_AS:
-            File_Save_As(hwnd,state);
+            //File_Save_As(hwnd,state);
             break;
 
         case IDM_FILE_QUIT:
@@ -175,7 +173,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             return 0;
 
         case WM_DESTROY:
-            Buffer_Free(state);
+            State_Free(state);
+
             PostQuitMessage(0);
             return 0;
         
@@ -214,18 +213,18 @@ static void UpdateCaretPos(HDC hdc, const NotepadState *state,RECT rect){
     int lineCount = 0;
     size_t lineStart = 0;
 
-    for (size_t i = 0; i < state->length; i++) {//count lines and find the last one's index
-        if (state->text[i] == L'\n') {
+    for (size_t i = 0; i < state->cursor_pos; i++) {//count lines and find the last one's index
+        if (state->render_buffer[i] == L'\n') {
             lineCount++;
             lineStart = i + 1; // Start of the next line
         }
     }
 
-    size_t currentLineLength = state->length - lineStart;
+    size_t currentLineLength = state->cursor_pos - lineStart;
     SIZE lineSize = {0};
 
     if (currentLineLength > 0) {
-        GetTextExtentPoint32W(hdc, &state->text[lineStart], (int)currentLineLength, &lineSize); //find info about the text from the last line
+        GetTextExtentPoint32W(hdc, &state->render_buffer[lineStart], (int)currentLineLength, &lineSize); //find info about the text from the last line
     }
 
     //calculate and set the caret pose

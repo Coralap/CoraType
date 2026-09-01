@@ -1,67 +1,64 @@
 #include "buffer.h"
 #include <stdlib.h>
+#include <string.h>
 
-int Buffer_Init(NotepadState *state, size_t initial_capacity) {
-    if(initial_capacity<16)
-        return -1;
-    state->text = (wchar_t*)malloc(sizeof(wchar_t)*initial_capacity); //alocate mem
-    if(!state->text) // check for failure of allocation
-        return -1;
-    state->length = 0;
-    state->text[0] = L'\0';
-    state->capacity = initial_capacity;
+bool State_Init(NotepadState *state, const wchar_t *initial_text, size_t len) {
+    if (!state) return false;
+
+    // init table
+    if (!PieceTable_Init(&state->piece_table, initial_text ? initial_text : L"", len)) {
+        return false;
+    }
+
+    state->cursor_pos = len;// position cursor
+
+    // add render cache
+    state->render_capacity = (len + 1 > BASE_BUFFER_LEN) ? (len + 1) * 2 : BASE_BUFFER_LEN;
+    state->render_buffer = (wchar_t*)malloc(state->render_capacity * sizeof(wchar_t));
+    if (!state->render_buffer) {
+        PieceTable_Free(&state->piece_table);
+        return false;
+    }
+    state->render_buffer[0] = L'\0';
+
+    // set defaults
     state->current_file_path[0] = L'\0';
+    state->is_dirty = false;
+    state->is_rtl = false;
+    state->line_height = 0;
 
-    return 0;
-
+    return true;
 }
 
-void Buffer_InsertChar(NotepadState *state, wchar_t ch) {
-    if (state->length + 1 >= state->capacity) { // check for overflow
-        size_t new_capacity = state->capacity*2;
-        wchar_t* new_text = (wchar_t*)realloc(state->text,sizeof(wchar_t)*new_capacity);
-        if(!new_text){return;}
+bool State_InsertChar(NotepadState *state, wchar_t ch) {
+    if (!state) return false;
 
-        state->text = new_text;
-        state->capacity = new_capacity;
-
+    if (PieceTable_InsertChar(&state->piece_table, ch, state->cursor_pos)) {
+        state->cursor_pos++;
+        state->is_dirty = true;
+        return true;
     }
-    state->text[state->length++] = (wchar_t)ch;
-    state->text[state->length] = '\0'; //null terminator
+    return false;
 }
 
-void Buffer_Backspace(NotepadState *state) {
-    if (state->length > 0) {
-        state->length--;
-        state->text[state->length] = L'\0';
+void State_EnsureRenderCapacity(NotepadState *state, size_t needed_len) {
+    if (needed_len + 1 > state->render_capacity) {
+        size_t new_cap = (needed_len + 1) * 2;
+        wchar_t *new_buf = (wchar_t*)realloc(state->render_buffer, new_cap * sizeof(wchar_t));
+        if (new_buf) {
+            state->render_buffer = new_buf;
+            state->render_capacity = new_cap;
+        }
     }
 }
 
-void Buffer_Clear(NotepadState *state) {
-    state->length = 0;
-    if (state->text) {
-        state->text[0] = L'\0';
-    }
+void State_Free(NotepadState *state) {
+    if (!state) return;
+
+    PieceTable_Free(&state->piece_table);
     
-    state->current_file_path[0] = L'\0';
-    
-}
-
-
-int Buffer_Resize(NotepadState *state,size_t new_size) {
-        wchar_t* new_text = (wchar_t*)realloc(state->text,sizeof(wchar_t)*new_size);
-        if(!new_text){return -1;}
-
-        state->text = new_text;
-        state->capacity = new_size;
-        return 1;
-}
-
-
-
-void Buffer_Free(NotepadState *state) {
-    free(state->text);
-    state->text = NULL;
-    state->length = 0;
-    state->capacity = 0;
+    free(state->render_buffer);
+    state->render_buffer = NULL;
+    state->render_capacity = 0;
+    state->cursor_pos = 0;
 }

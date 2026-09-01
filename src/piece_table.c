@@ -46,7 +46,7 @@ bool PieceTable_Init(PieceTable *table, const wchar_t *text, size_t len) {
     return true;
 }
 
-bool PieceTableInsertChar(PieceTable *table, const wchar_t text, size_t pos) {
+bool PieceTable_InsertChar(PieceTable *table, const wchar_t text, size_t pos) {
     size_t add_start = table->added.length;
     Text_InsertChar(&table->added, text);
 

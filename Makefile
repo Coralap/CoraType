@@ -3,7 +3,7 @@ CFLAGS = -Wall -Wextra -O2 -DUNICODE -D_UNICODE
 LDFLAGS = -municode -mwindows -lcomdlg32
 
 TARGET = a.exe
-SRCS = src/main.c src/window.c src/buffer.c src/file_io.c
+SRCS = src/main.c src/window.c src/buffer.c src/piece_table.c src/text_buffer.c
 
 all: $(TARGET)
 

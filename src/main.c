@@ -29,7 +29,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     RegisterClass(&wc);
 
     NotepadState state;
-    if (Buffer_Init(&state, BASE_BUFFER_LEN)==-1) {
+    if (!State_Init(&state, L"", 0)) {
         return 0;
     }
 
