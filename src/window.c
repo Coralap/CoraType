@@ -158,6 +158,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             OnChar(hwnd,wParam,state);
             return 0;
         }
+
+        case WM_KEYDOWN: {
+            bool moved = false;
+            if (wParam == VK_LEFT && state->cursor_pos > 0) {
+                state->cursor_pos--;
+                moved = true;
+            }
+            else if (wParam == VK_RIGHT) {
+                size_t total_len = PieceTable_GetTotalLength(&state->piece_table);
+                if (state->cursor_pos < total_len) {
+                    state->cursor_pos++;
+                    moved = true;
+                }
+            }
+
+            if (moved) {
+                HDC hdc = GetDC(hwnd);
+                RECT rect;
+                GetClientRect(hwnd, &rect);
+                UpdateCaretPos(hdc, state, rect);
+                ReleaseDC(hwnd, hdc);
+            }
+            return 0;
+        }
         
         case WM_COMMAND:
             HandleCommands(hwnd,wParam,state);
