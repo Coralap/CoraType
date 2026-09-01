@@ -29,6 +29,7 @@ typedef struct {
 
 bool PieceTable_Init(PieceTable *table, const wchar_t *text, size_t len);
 bool PieceTable_InsertChar(PieceTable *table, const wchar_t text, size_t pos);
+bool PieceTable_DeleteChar(PieceTable *table, size_t pos);
 size_t PieceTable_GetTotalLength(const PieceTable *table);
 bool PieceTable_GetText(const PieceTable* table, wchar_t *out, size_t max_len);
 void PieceTable_Free(PieceTable* table);

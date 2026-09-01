@@ -175,6 +175,94 @@ bool PieceTable_InsertChar(PieceTable *table, const wchar_t text, size_t pos) {
     return true;
 }
 
+
+
+bool PieceTable_DeleteChar(PieceTable *table, size_t pos) {
+
+    // Empty document
+    if (!table || table->head == NULL) {
+        return false;
+    }
+
+    Node *curr = table->head;
+    size_t current_offset = 0;
+
+    while (curr != NULL) {
+        current_offset += curr->length;
+        size_t node_doc_start = current_offset - curr->length;
+
+        // Check the char at pos is inside ucrr
+        if (pos >= node_doc_start && pos < current_offset) {
+            if(curr->length ==1)//free and relink if the node only has 1 char
+            {
+                if (curr->prev != NULL) {
+                    curr->prev->next = curr->next;
+                } else {
+                    table->head = curr->next;
+                }
+
+                if (curr->next != NULL) {
+                    curr->next->prev = curr->prev;
+                } else {
+                    table->tail = curr->prev;
+                }
+
+                free(curr);
+                return true;
+            }
+
+            // Exact start of curr node
+            if (pos == node_doc_start) {
+                curr->start++;
+                curr->length--;
+                return true;
+            }
+
+
+            // Exact end of curr node
+            if (pos == current_offset - 1) {
+                curr->length--;
+                return true;
+            }
+
+            // middle of node
+            size_t split_offset = pos - node_doc_start; //offset to split
+
+            Node *right_node = (Node*)malloc(sizeof(Node));
+            if (!right_node)    return false;
+
+            right_node->type = curr->type;
+            right_node->start = curr->start+split_offset + 1;//skip deleted char
+            right_node->length = curr->length - split_offset -1;
+
+
+            //relink
+            right_node->next = curr->next;
+            right_node->prev = curr;
+
+            curr->next = right_node;
+            curr->length = split_offset;
+
+            //incase the node is the last one
+            if (right_node->next != NULL) {
+                right_node->next->prev = right_node;
+            }else {
+                table->tail = right_node;
+            }
+
+            return true;
+        }
+
+        curr = curr->next;
+    }
+
+    return false; // pos was probably out of bounds
+}
+
+
+
+
+
 size_t PieceTable_GetTotalLength(const PieceTable *table){
     Node *curr = table->head;
     size_t len = 0;

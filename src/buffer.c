@@ -41,6 +41,17 @@ bool State_InsertChar(NotepadState *state, wchar_t ch) {
     return false;
 }
 
+bool State_Backspace(NotepadState *state) {
+    if (!state || state->cursor_pos == 0) return false;
+
+    if (PieceTable_DeleteChar(&state->piece_table, state->cursor_pos - 1)) {
+        state->cursor_pos--;
+        state->is_dirty = true;
+        return true;
+    }
+    return false;
+}
+
 void State_EnsureRenderCapacity(NotepadState *state, size_t needed_len) {
     if (needed_len + 1 > state->render_capacity) {
         size_t new_cap = (needed_len + 1) * 2;

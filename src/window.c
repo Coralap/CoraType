@@ -71,6 +71,10 @@ static void OnChar(HWND hwnd,const WPARAM wParam, NotepadState *state){
         State_InsertChar(state,L'\n');
     }
 
+    else if (wParam == VK_BACK) {   //Handle backspace
+        State_Backspace(state);
+        InvalidateRect(hwnd, NULL, FALSE);
+    }
     InvalidateRect(hwnd, NULL, false);
 
 }
