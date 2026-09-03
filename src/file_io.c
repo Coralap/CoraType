@@ -1,7 +1,7 @@
 #include "file_io.h"
 #include <commdlg.h>
 #include <stdlib.h>
-
+#include <limits.h>
 #define MAX_REASONABLE_SIZE 1500000000 // 1.5 GB
 
 static bool ShowOpenFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len,NotepadState* state){
@@ -163,7 +163,17 @@ bool File_Open(HWND hwnd, NotepadState *state) {
 
 static bool SavePathedFile(NotepadState *state){
     if (!state || state->current_file_path[0] == L'\0') return false;
+    size_t total_len = PieceTable_GetTotalLength(&state->piece_table);
 
+    // Prevent int overflow
+    if (total_len > (size_t)INT_MAX) {
+        return false;
+    }
+
+    // Check reallocation failure
+    if (!State_EnsureRenderCapacity(state, total_len)) {
+        return false;
+    }
     HANDLE fileHandle = CreateFileW(
         state->current_file_path,
         GENERIC_WRITE,
@@ -178,16 +188,12 @@ static bool SavePathedFile(NotepadState *state){
     if (fileHandle == INVALID_HANDLE_VALUE)
         return false;
 
-    //make sure the buffer is updated
-    size_t total_len = PieceTable_GetTotalLength(&state->piece_table);
-    State_EnsureRenderCapacity(state, total_len);
-    PieceTable_GetText(&state->piece_table, state->render_buffer, state->render_capacity);
-
     if (total_len == 0) {
         CloseHandle(fileHandle);
-        state->is_dirty = false;
+        State_Rebase(state, 0);
         return true;
     }
+
 
     int utf8_size = WideCharToMultiByte(CP_UTF8, 0, state->render_buffer,(int)total_len, NULL, 0, NULL, NULL); // get the size of the text
     if (utf8_size <= 0) {
@@ -201,23 +207,19 @@ static bool SavePathedFile(NotepadState *state){
         CloseHandle(fileHandle);
         return false;
     }
-
     WideCharToMultiByte(CP_UTF8, 0, state->render_buffer,(int)total_len, utf8_data, utf8_size, NULL, NULL);
 
-    // write to disk
     DWORD bytesWritten = 0;
     BOOL success = WriteFile(fileHandle, utf8_data, (DWORD)utf8_size, &bytesWritten, NULL);
 
     free(utf8_data);
     CloseHandle(fileHandle);
-
+    //check for sucsess when writing
     if (success && bytesWritten == (DWORD)utf8_size) {
         State_Rebase(state, total_len);
         return true;
     }
-
-
-    return (success && bytesWritten == (DWORD)utf8_size);
+    return false;
 }
 bool File_Save(HWND hwnd, NotepadState *state) {
     if (state->current_file_path[0] == L'\0') {

@@ -32,6 +32,22 @@ static void OnPaint(HWND hwnd, NotepadState *state){
         EndPaint(hwnd, &ps);
         return;
     }
+    size_t total_len = PieceTable_GetTotalLength(&state->piece_table);
+
+    // Check for integer overflow
+    if (total_len > (size_t)INT_MAX) {
+        EndPaint(hwnd, &ps);
+        return;
+    }
+
+    //return if memory expansion failed
+    if (!State_EnsureRenderCapacity(state, total_len)) {
+        EndPaint(hwnd, &ps);
+        return;
+    }
+
+    PieceTable_GetText(&state->piece_table, state->render_buffer, state->render_capacity); //write the text.
+
 
     hdcMem = CreateCompatibleDC(hdc); //copy the hdc
 
@@ -41,25 +57,23 @@ static void OnPaint(HWND hwnd, NotepadState *state){
     hbmOld = SelectObject(hdcMem, hbmMem); // use the bitmap
 
     FillRect(hdcMem, &rect, (HBRUSH) (COLOR_WINDOW+1)); //background
-    
-    size_t total_len = PieceTable_GetTotalLength(&state->piece_table); //get len of string
-    State_EnsureRenderCapacity(state, total_len); //check the text buffer is long enough
-    PieceTable_GetText(&state->piece_table, state->render_buffer, state->render_capacity); //write the text.
-    DrawTextW(hdcMem, state->render_buffer, (int)total_len, &rect, DT_LEFT | DT_EDITCONTROL); //text
 
-    BitBlt(hdc,
-           rect.left, rect.top,
-           rect.right-rect.left, rect.bottom-rect.top,
-           hdcMem,
-           0, 0,
-           SRCCOPY); //transfer to the real hdc
-    
-    //free memory and end paint
+    UINT flags = DT_EDITCONTROL | DT_EXPANDTABS; //handle rtl
+    if (state->is_rtl) {
+        flags |= DT_RIGHT | DT_RTLREADING;
+    } else {
+        flags |= DT_LEFT;
+    }
+
+    DrawTextW(hdcMem, state->render_buffer, (int)total_len, &rect, flags);
+    //copy the back buffer to the front
+    BitBlt(hdc, rect.left, rect.top, width, height, hdcMem, 0, 0, SRCCOPY);
+    //free mem and end painting
     SelectObject(hdcMem, hbmOld);
     DeleteObject(hbmMem);
     DeleteDC(hdcMem);
-    UpdateCaretPos(hdc,state,rect);
 
+    UpdateCaretPos(hdc, state, rect);
     EndPaint(hwnd, &ps);
 
 }

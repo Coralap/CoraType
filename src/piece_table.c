@@ -2,6 +2,11 @@
 
 
 bool PieceTable_Init(PieceTable *table, const wchar_t *text, size_t len) {
+    if(!table) return false;
+    //check for possible overflow
+    if(len >(SIZE_MAX/sizeof(wchar_t))-1)
+        return false;
+
     // allocate and copy original text
     if (len > 0) {
         table->original = (wchar_t*)malloc((len + 1) * sizeof(wchar_t));
@@ -15,8 +20,9 @@ bool PieceTable_Init(PieceTable *table, const wchar_t *text, size_t len) {
     table->original_length = len;
 
     // init added buffer
-    if(Text_Init(&table->added,64) == false){
+    if(!Text_Init(&table->added,64)){
         free(table->original);
+        table->original = NULL;
         return false;
 
     }
@@ -27,6 +33,7 @@ bool PieceTable_Init(PieceTable *table, const wchar_t *text, size_t len) {
         if (!head_node) {
             free(table->original);
             table->original = NULL;
+            Text_Free(&table->added);
             return false;
         }
 

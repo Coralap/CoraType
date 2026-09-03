@@ -28,7 +28,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     RegisterClass(&wc);
 
-    NotepadState state;
+    NotepadState state = {0};
     if (!State_Init(&state, L"", 0)) {
         return 0;
     }
