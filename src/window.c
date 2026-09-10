@@ -11,6 +11,7 @@
 #define IDM_FILE_QUIT 3
 #define IDM_FILE_SAVE 4
 #define IDM_FILE_SAVE_AS 5
+#define IDM_VIEW_RTL 6
 
 #define MAX_REASONABLE_SIZE 1500000000
 
@@ -118,6 +119,10 @@ static void HandleCommands(HWND hwnd,const WPARAM wParam, NotepadState *state){
         case IDM_FILE_QUIT:
             SendMessage(hwnd, WM_CLOSE, 0, 0);
             break;
+        case IDM_VIEW_RTL:
+            state->is_rtl = !state->is_rtl;
+            InvalidateRect(hwnd, NULL, false);
+            break;
     }
     
 
@@ -134,6 +139,8 @@ static void AddMenus(HWND hwnd) {
     hMenubar = CreateMenu();
     hMenu = CreatePopupMenu();
 
+
+    
     AppendMenuW(hMenu, MF_STRING, IDM_FILE_NEW, L"&New");
     AppendMenuW(hMenu, MF_STRING, IDM_FILE_OPEN, L"&Open");
     AppendMenuW(hMenu, MF_STRING, IDM_FILE_SAVE, L"&Save");
@@ -143,6 +150,12 @@ static void AddMenus(HWND hwnd) {
     AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
 
     AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR) hMenu, L"&File");
+
+    hMenu = CreatePopupMenu();
+    AppendMenuW(hMenu, MF_STRING, IDM_VIEW_RTL, L"&Toggle RTL");
+    AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR) hMenu, L"&View");
+
+
     SetMenu(hwnd, hMenubar);
 }
 
@@ -180,11 +193,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
 
         case WM_KEYDOWN: {
             bool moved = false;
-            if (wParam == VK_LEFT && state->cursor_pos > 0) {
+
+            if (((wParam == VK_LEFT && !state->is_rtl) || (wParam == VK_RIGHT && state->is_rtl)) && state->cursor_pos > 0) {
                 state->cursor_pos--;
                 moved = true;
             }
-            else if (wParam == VK_RIGHT) {
+            else if ((wParam == VK_RIGHT && !state->is_rtl) || (wParam == VK_LEFT && state->is_rtl)) {
                 size_t total_len = PieceTable_GetTotalLength(&state->piece_table);
                 if (state->cursor_pos < total_len) {
                     state->cursor_pos++;
