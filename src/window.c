@@ -12,6 +12,7 @@
 #define IDM_FILE_SAVE 4
 #define IDM_FILE_SAVE_AS 5
 #define IDM_VIEW_RTL 6
+#define IDM_VIEW_RESET_CARET 7
 
 #define MAX_REASONABLE_SIZE 1500000000
 
@@ -123,6 +124,10 @@ static void HandleCommands(HWND hwnd,const WPARAM wParam, NotepadState *state){
             state->is_rtl = !state->is_rtl;
             InvalidateRect(hwnd, NULL, false);
             break;
+        case IDM_VIEW_RESET_CARET:
+            state->cursor_pos = 0;
+            InvalidateRect(hwnd, NULL, false);
+            break;
     }
     
 
@@ -153,6 +158,8 @@ static void AddMenus(HWND hwnd) {
 
     hMenu = CreatePopupMenu();
     AppendMenuW(hMenu, MF_STRING, IDM_VIEW_RTL, L"&Toggle RTL");
+    AppendMenuW(hMenu, MF_STRING, IDM_VIEW_RESET_CARET, L"&Reset Caret Position");
+
     AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR) hMenu, L"&View");
 
 

@@ -4,25 +4,21 @@
 #include <limits.h>
 #define MAX_REASONABLE_SIZE 1500000000 // 1.5 GB
 
-static bool ShowOpenFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len,NotepadState* state){
-    OPENFILENAMEW  ofn = { 0 };
-            ofn.lStructSize = sizeof(OPENFILENAMEW);
-            ofn.hwndOwner = hwnd;
-            ofn.lpstrFile = out_path;
-            ofn.lpstrFile[0] = L'\0';
-            ofn.nMaxFile = (DWORD)max_len;
-            ofn.lpstrFilter = L"Text Files\0*.txt\0\0"; //filter for only .txt
-            ofn.nFilterIndex = 1;
-            ofn.lpstrFileTitle = NULL;
-            ofn.nMaxFileTitle = 0;
-            ofn.lpstrInitialDir = NULL;
-            ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+static bool ShowOpenFileDialog(HWND hwnd, wchar_t *out_path, size_t max_len) {
+    OPENFILENAMEW ofn = { 0 };
+    ofn.lStructSize = sizeof(OPENFILENAMEW);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFile = out_path;
+    ofn.lpstrFile[0] = L'\0';
+    ofn.nMaxFile = (DWORD)max_len;
+    ofn.lpstrFilter = L"Text Files\0*.txt\0\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-    if(GetOpenFileNameW(&ofn)==true){
-        wcscpy(state->current_file_path, out_path);
-        return true;
-    }
-    return false;
+    return (GetOpenFileNameW(&ofn) == TRUE);
 }
 
 bool ShowSaveFileDialog(HWND hwnd,wchar_t *out_path,size_t max_len){
@@ -107,8 +103,6 @@ static bool LoadUtf8IntoState(const char *utf8_data, DWORD byte_count, NotepadSt
         return State_Init(state, L"" ,0);
     }
 
-    State_EnsureRenderCapacity(state, byte_count + 1);
-
     // Find required wide character count (without null terminator)
     int wide_count = MultiByteToWideChar(CP_UTF8, 0, utf8_data, (int)byte_count, NULL, 0);
     if (wide_count <= 0) {
@@ -136,7 +130,7 @@ static bool LoadUtf8IntoState(const char *utf8_data, DWORD byte_count, NotepadSt
 
 bool File_Open(HWND hwnd, NotepadState *state) {
     wchar_t filePath[MAX_PATH];
-    if (!ShowOpenFileDialog(hwnd, filePath, MAX_PATH,state)) {
+    if (!ShowOpenFileDialog(hwnd, filePath, MAX_PATH)) {
         return false; // clicked cancel
     }
 
@@ -151,7 +145,11 @@ bool File_Open(HWND hwnd, NotepadState *state) {
     free(rawBytes); //free unused memory
 
     if (success) {
-        InvalidateRect(hwnd, NULL, false);
+        wcsncpy(state->current_file_path, filePath, MAX_PATH - 1);
+        state->current_file_path[MAX_PATH - 1] = L'\0';
+        state->is_dirty = false;
+
+        InvalidateRect(hwnd, NULL, FALSE);
     } else {
         MessageBoxW(hwnd, L"Failed to parse file text.", L"Error", MB_ICONERROR | MB_OK);
     }
